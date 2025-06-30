@@ -26,7 +26,7 @@ async def on_ready():
         print("RUNNING")
         print("-------")
         await bot.tree.sync()
-        await bot.change_presence(status=discord.Status.idle, activity=discord.Streaming(name = 'Youtube',url = 'https://www.youtube.com/watch?v=gUbWTVsRQAg'))
+        await bot.change_presence(status=discord.Status.online)
 
     except Exception as e:
         print(e)
