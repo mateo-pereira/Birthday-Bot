@@ -7,6 +7,13 @@ from discord.ext import commands, tasks
 import resources.constants as constants
 from discord import app_commands
 
+REQUIRED_ROLE_NAME = {1336363790744289331,1165451475980398662,774385926461194252}
+
+def has_allowed_role(interaction: discord.Interaction) -> bool:
+    user_role_ids = {role.id for role in interaction.user.roles}
+    return bool(REQUIRED_ROLE_NAME.intersection(user_role_ids))
+
+premium_check = app_commands.check(lambda interaction: has_allowed_role(interaction))
 
 mongoClient = constants.mongo_connection
 
@@ -32,13 +39,14 @@ class MyCommands(commands.Cog):
         return'''
     
     @app_commands.command(name="setbirthday", description="Insert a user's birthday into the database")
+    @premium_check
     async def setbirthday(self, interaction: discord.Interaction, month: int, day: int):
         try:
             user = interaction.user
             user_exists = constants.USERS.find_one({"_id": user.id})
 
             if user_exists:
-                await interaction.response.send_message("You have already set your birthday. Contact an admin to change it.")
+                await interaction.response.send_message("You have already set your birthday. Contact an admin to change it.", ephemeral=True)
                 return
 
             if day > 31 or month > 12 or month < 1 or day < 1:
@@ -57,20 +65,21 @@ class MyCommands(commands.Cog):
             )
 
             month_name = calendar.month_name[month]
-            await interaction.response.send_message(f"Your birthday has been set to {month_name} {day}.")
+            await interaction.response.send_message(f"Your birthday has been set to {month_name} {day}.", ephemeral=True)
         except Exception as e:
             print(e)
-            await interaction.response.send_message("Failed to add birthday")
+            await interaction.response.send_message("Failed to add birthday", ephemeral=True)
         return
     
     @app_commands.command(name="birthdaylist", description="Get a list of everyone's birthdays")
+    @premium_check
     async def birthdaylist(self, interaction: discord.Interaction):
         try:
             # Get all users from MongoDB
             users = list(constants.USERS.find({}))
             
             if not users:
-                await interaction.response.send_message("No birthdays have been set yet.")
+                await interaction.response.send_message("No birthdays have been set yet.", ephemeral=True)
                 return
             
             birthdayLeaderboard = []
@@ -115,19 +124,19 @@ class MyCommands(commands.Cog):
             
             embed = discord.Embed(title="Birthdays", description=leaderboard_text, color=discord.Color.gold())
             embed.set_footer(text="Use /setbirthday to add your birthday!")
-            await interaction.response.send_message(embed=embed)
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             
         except Exception as e:
             print(e)
-            await interaction.response.send_message("Failed to retrieve birthday list.")
+            await interaction.response.send_message("Failed to retrieve birthday list.", ephemeral=True)
         return
     
     #Tasks
     @tasks.loop(seconds=60)
     async def birthdayCheck(self):
         try:
-            myServer = self.bot.get_channel(1376252625510727892)
-            guild = self.bot.get_guild(774385423039987742)
+            myServer = self.bot.get_channel(1355182499600531497) # 1376252625510727892 for testing
+            guild = self.bot.get_guild(1157426887111483394) # 774385423039987742
 
             eastern = pytz.timezone('US/Eastern')
             now = datetime.now(eastern)
@@ -156,6 +165,13 @@ class MyCommands(commands.Cog):
 
         except Exception as e:
             print(e)
+
+    async def cog_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, app_commands.CheckFailure):
+            await interaction.response.send_message(
+                "❌ You need premium to access this feature.",
+                ephemeral=True
+            )
 
 
 async def setup(bot):
