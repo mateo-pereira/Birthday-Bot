@@ -8,12 +8,40 @@ import resources.constants as constants
 from discord import app_commands
 
 REQUIRED_ROLE_NAME = {1336363790744289331,1165451475980398662,774385926461194252}
+REQUIRED_ROLE_NAME_ADMIN = {1336363790744289331,774385926461194252}
 
-def has_allowed_role(interaction: discord.Interaction) -> bool:
+def has_allowed_role_premium(interaction: discord.Interaction) -> bool:
     user_role_ids = {role.id for role in interaction.user.roles}
     return bool(REQUIRED_ROLE_NAME.intersection(user_role_ids))
 
-premium_check = app_commands.check(lambda interaction: has_allowed_role(interaction))
+def has_allowed_role_premium_admin(interaction: discord.Interaction) -> bool:
+    user_role_ids = {role.id for role in interaction.user.roles}
+    return bool(REQUIRED_ROLE_NAME.intersection(user_role_ids))
+
+premium_check = app_commands.check(lambda interaction: has_allowed_role_premium(interaction))
+premium_check_admin = app_commands.check(lambda interaction: has_allowed_role_premium_admin(interaction))
+
+def validate_birthday(month: int, day: int) -> bool:
+    return 1 <= month <= 12 and 1 <= day <= 31
+
+def format_birthday(month: int, day: int) -> str:
+    try:
+        return datetime(year=2000, month=month, day=day).strftime("%m-%d")
+    except ValueError:
+        return None
+    
+def set_user_birthday(user_id: int, username: str, birthday: str, upsert: bool = False):
+    update_result = constants.USERS.update_one(
+        {"_id": user_id},
+        {
+            "$set": {
+                "name": username,
+                "birthday": birthday
+            }
+        },
+        upsert=upsert
+    )
+    return update_result
 
 mongoClient = constants.mongo_connection
 
@@ -38,31 +66,27 @@ class MyCommands(commands.Cog):
             await interaction.response.send_message("Failed to connect to MongoDB client.")
         return'''
     
-    @app_commands.command(name="setbirthday", description="Insert a user's birthday into the database")
+    @app_commands.command(name="setbirthday", description="Insert your birthday into the database")
     @premium_check
     async def setbirthday(self, interaction: discord.Interaction, month: int, day: int):
         try:
             user = interaction.user
-            user_exists = constants.USERS.find_one({"_id": user.id})
 
+            if not validate_birthday(month, day):
+                await interaction.response.send_message("Invalid date. Use a valid date format.", ephemeral=True)
+                return
+
+            user_exists = constants.USERS.find_one({"_id": user.id})
             if user_exists:
                 await interaction.response.send_message("You have already set your birthday. Contact an admin to change it.", ephemeral=True)
                 return
 
-            if day > 31 or month > 12 or month < 1 or day < 1:
-                await interaction.response.send_message("Invalid date. Use a valid date format.", ephemeral=True)
+            birthday = format_birthday(month, day)
+            if birthday is None:
+                await interaction.response.send_message("Invalid date combination. Please enter a real date.", ephemeral=True)
                 return
-            
-            birthday = datetime(year=2002,month=month, day=day).strftime("%m-%d")
-             # random_id = random.randint(1, 999999) For testing
-            constants.USERS.update_one(
-                {"_id": user.id}, # user.id                
-                {"$set": {                           
-                    "name": user.name,
-                    "birthday": birthday
-                }},     
-                upsert=True                          
-            )
+
+            set_user_birthday(user.id, user.name, birthday, upsert=True)
 
             month_name = calendar.month_name[month]
             await interaction.response.send_message(f"Your birthday has been set to {month_name} {day}.", ephemeral=True)
@@ -93,14 +117,13 @@ class MyCommands(commands.Cog):
                 birthday_date = datetime.strptime(user['birthday'], "%m-%d")
                 today = datetime.now()
 
-                # Construct the next birthday with the current year
                 next_birthday = datetime(
                     year=today.year,
                     month=birthday_date.month,
                     day=birthday_date.day
                 )
 
-                # If the birthday already passed this year, use next year
+                # If birthday passed this year use next year
                 if next_birthday < today:
                     next_birthday = datetime(
                         year=today.year + 1,
@@ -130,7 +153,28 @@ class MyCommands(commands.Cog):
             print(e)
             await interaction.response.send_message("Failed to retrieve birthday list.", ephemeral=True)
         return
-    
+
+    @app_commands.command(name="changebirthday", description="Change a user's birthday")
+    @premium_check_admin
+    async def change_birthday(self, interaction: discord.Interaction, user: discord.User, month: int, day: int):
+        try:
+            if not validate_birthday(month, day):
+                await interaction.response.send_message("Invalid date. Use a valid date format.", ephemeral=True)
+                return
+
+            birthday = format_birthday(month, day)
+            if birthday is None:
+                await interaction.response.send_message("Invalid date combination. Please enter a real date.", ephemeral=True)
+                return
+
+            set_user_birthday(user.id, user.name, birthday, upsert=False)
+            month_name = calendar.month_name[month]
+            await interaction.response.send_message(f"{user.name}'s birthday has been updated to {month_name} {day}.", ephemeral=True)
+
+        except Exception as e:
+            print(e)
+            await interaction.response.send_message("Failed to update birthday. Please contact Mateeyo.", ephemeral=True)
+
     #Tasks
     @tasks.loop(seconds=60)
     async def birthdayCheck(self):
@@ -161,7 +205,7 @@ class MyCommands(commands.Cog):
                             description=f"Happy birthday to {user}! Here is 100 tickets for you! Have a good one!",
                             color=discord.Color.gold()
                         )
-                        await myServer.send(content='@everyone', embed=embed)
+                        await myServer.send(content=' ', embed=embed)
 
         except Exception as e:
             print(e)
