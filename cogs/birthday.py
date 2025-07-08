@@ -185,7 +185,7 @@ class MyCommands(commands.Cog):
             eastern = pytz.timezone('US/Eastern')
             now = datetime.now(eastern)
 
-            if now.hour == 11 and now.minute == 59:  # 12:00 AM Eastern Time
+            if now.hour == 0 and now.minute == 10:  # 12:00 AM Eastern Time
                 today_str = now.strftime("%m-%d")
                 birthday_cursor = constants.USERS.find({"birthday": today_str})
                 birthday_users = []
