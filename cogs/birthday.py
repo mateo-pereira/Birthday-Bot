@@ -1,8 +1,8 @@
 from datetime import datetime
 import random
 import calendar
+from zoneinfo import ZoneInfo
 import discord
-import pytz
 from discord.ext import commands, tasks
 import resources.constants as constants
 from discord import app_commands
@@ -101,7 +101,7 @@ class MyCommands(commands.Cog):
         try:
             # Get all users from MongoDB
             users = list(constants.USERS.find({}))
-            eastern = pytz.timezone('US/Eastern')
+            eastern = ZoneInfo("America/New_York")
             
             if not users:
                 await interaction.response.send_message("No birthdays have been set yet.", ephemeral=True)
@@ -121,7 +121,8 @@ class MyCommands(commands.Cog):
                 next_birthday = datetime(
                     year=today.year,
                     month=birthday_date.month,
-                    day=birthday_date.day
+                    day=birthday_date.day,
+                    tzinfo=eastern
                 )
 
                 # If birthday passed this year use next year
@@ -129,7 +130,8 @@ class MyCommands(commands.Cog):
                     next_birthday = datetime(
                         year=today.year + 1,
                         month=birthday_date.month,
-                        day=birthday_date.day
+                        day=birthday_date.day,
+                        tzinfo=eastern
                 )
                 
                 days_left = (next_birthday - today).days + 1
@@ -183,7 +185,7 @@ class MyCommands(commands.Cog):
             myServer = self.bot.get_channel(1355182499600531497) # 1376252625510727892 for testing, 1355182499600531497 for #birthdays channel
             guild = self.bot.get_guild(1157426887111483394) # 774385423039987742
 
-            eastern = pytz.timezone('US/Eastern')
+            eastern = ZoneInfo("America/New_York")
             now = datetime.now(eastern)
 
             if now.hour == 0 and now.minute == 0:  # 12:00 AM Eastern Time
