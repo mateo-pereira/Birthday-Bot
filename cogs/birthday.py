@@ -131,12 +131,12 @@ class MyCommands(commands.Cog):
                         day=birthday_date.day
                 )
                 
-                days_left = (next_birthday - today).days + 2
+                days_left = (next_birthday - today).days
 
                 month_name = calendar.month_name[birthday_date.month]
 
                 birthdayLeaderboard.append(
-                    (name, month_name, birthday_date.day, 0 if days_left == 365 else days_left)
+                    (name, month_name, birthday_date.day, 0 if days_left == 364 else days_left)
                 )
             
             birthdayLeaderboard.sort(key=lambda x: x[3], reverse=False)
