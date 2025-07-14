@@ -179,13 +179,13 @@ class MyCommands(commands.Cog):
     @tasks.loop(seconds=60)
     async def birthdayCheck(self):
         try:
-            myServer = self.bot.get_channel(1391989041515462657) # 1376252625510727892 for testing, 1355182499600531497 for #birthdays channel
+            myServer = self.bot.get_channel(1355182499600531497) # 1376252625510727892 for testing, 1355182499600531497 for #birthdays channel
             guild = self.bot.get_guild(1157426887111483394) # 774385423039987742
 
             eastern = pytz.timezone('US/Eastern')
             now = datetime.now(eastern)
 
-            if now.hour == 20 and now.minute == 12:  # 12:00 AM Eastern Time
+            if now.hour == 0 and now.minute == 0:  # 12:00 AM Eastern Time
                 today_str = now.strftime("%m-%d")
                 birthday_cursor = constants.USERS.find({"birthday": today_str})
                 birthday_users = []
