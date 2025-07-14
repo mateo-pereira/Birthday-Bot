@@ -185,7 +185,7 @@ class MyCommands(commands.Cog):
             eastern = pytz.timezone('US/Eastern')
             now = datetime.now(eastern)
 
-            if now.hour == 0 and now.minute == 10:  # 12:00 AM Eastern Time
+            if now.hour == 20 and now.minute == 12:  # 12:00 AM Eastern Time
                 today_str = now.strftime("%m-%d")
                 birthday_cursor = constants.USERS.find({"birthday": today_str})
                 birthday_users = []
@@ -213,7 +213,7 @@ class MyCommands(commands.Cog):
     async def cog_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.CheckFailure):
             await interaction.response.send_message(
-                "❌ You need premium to access this feature.",
+                "❌ You need premium to access /setbirthday, and Admin to access /changebirthday.",
                 ephemeral=True
             )
 
