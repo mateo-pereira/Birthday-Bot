@@ -101,13 +101,14 @@ class MyCommands(commands.Cog):
         try:
             # Get all users from MongoDB
             users = list(constants.USERS.find({}))
+            eastern = pytz.timezone('US/Eastern')
             
             if not users:
                 await interaction.response.send_message("No birthdays have been set yet.", ephemeral=True)
                 return
             
             birthdayLeaderboard = []
-            today = datetime.now()
+            today = datetime.now(eastern)
             
             for user in users:
                 if 'birthday' not in user:
@@ -115,7 +116,7 @@ class MyCommands(commands.Cog):
 
                 name = user['name']
                 birthday_date = datetime.strptime(user['birthday'], "%m-%d")
-                today = datetime.now()
+                today = datetime.now(eastern)
 
                 next_birthday = datetime(
                     year=today.year,
