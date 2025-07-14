@@ -131,7 +131,7 @@ class MyCommands(commands.Cog):
                         day=birthday_date.day
                 )
                 
-                days_left = (next_birthday - today).days + 1
+                days_left = (next_birthday - today).days
 
                 month_name = calendar.month_name[birthday_date.month]
 
