@@ -188,6 +188,16 @@ class MyCommands(commands.Cog):
             eastern = ZoneInfo("America/New_York")
             now = datetime.now(eastern)
 
+            premium_role_id = 1165451475980398662
+            users_cursor = constants.USERS.find({})
+            for user_data in users_cursor:
+                user_id = user_data["_id"]
+                member = guild.get_member(user_id)
+
+                if not member or all(role.id != premium_role_id for role in member.roles): # Remove user if true
+                    constants.USERS.delete_one({"_id": user_id})
+                    print(f"Removed user {user_id} from DB due to lack of premium role")
+
             if now.hour == 0 and now.minute == 0:  # 12:00 AM Eastern Time
                 today_str = now.strftime("%m-%d")
                 birthday_cursor = constants.USERS.find({"birthday": today_str})
